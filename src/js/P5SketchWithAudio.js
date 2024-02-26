@@ -4,13 +4,13 @@ import "p5/lib/addons/p5.sound";
 import * as p5 from "p5";
 import { Midi } from '@tonejs/midi'
 import PlayIcon from './functions/PlayIcon.js';
-import Flower from './classes/Flower.js';
+import Blob from './classes/Blob.js';
 
-import audio from "../audio/flowers-no-2.ogg";
-import midi from "../audio/flowers-no-2.mid";
+import audio from "../audio/blobs-no-2.ogg";
+import midi from "../audio/blobs-no-2.mid";
 
 /**
- * Flowers No. 2
+ * Blobs No. 2
  */
 const P5SketchWithAudio = () => {
     const sketchRef = useRef();
@@ -33,10 +33,8 @@ const P5SketchWithAudio = () => {
             Midi.fromUrl(midi).then(
                 function(result) {
                     console.log(result);
-                    const noteSet1 = result.tracks[5].notes; // Synth 2 - Clockenspiel
-                    const noteSet2 = result.tracks[3].notes; // Synth 1 - Analog Replicant
+                    const noteSet1 = result.tracks[7].notes; // Combintor 1 
                     p.scheduleCueSet(noteSet1, 'executeCueSet1');
-                    p.scheduleCueSet(noteSet2, 'executeCueSet2');
                     p.audioLoaded = true;
                     document.getElementById("loader").classList.add("loading--complete");
                     document.getElementById("play-icon").classList.remove("fade-out");
@@ -65,98 +63,38 @@ const P5SketchWithAudio = () => {
             }
         }
 
-        p.hueSet = [30, 90, 150, 210, 270, 330];
-        
-        p.bgHue = 0;
-
-        p.bgSaturation = 30;
-        
-        p.bgBrightness = 50;
-
-        p.flowers = Array(20).fill(null);
+        p.blobsArray = [];
 
         p.setup = () => {
             p.canvas = p.createCanvas(p.canvasWidth, p.canvasHeight);
             p.bgHue = p.random(p.hueSet);
             p.colorMode(p.HSB);
-            p.background(p.bgHue, p.bgSaturation, p.bgBrightness);
+            p.angleMode(p.DEGREES);
+            p.background(0, 0, 0);
             p.stroke(0, 0, 100);
-            p.noLoop();
+            p.strokeWeight(p.width / 256);
+
+            p.blob = new Blob(p, p.width / 2, p.height/ 2);
         }
 
         p.draw = () => {
             if(p.audioLoaded && p.song.isPlaying()){
-                p.background(p.bgHue, p.bgSaturation, p.bgBrightness);
-                for (let i = 0; i < p.flowers.length; i++) {
-                    const flower = p.flowers[i];
-                    if(flower) {
-                        flower.draw();    
-                    }
+                p.background(0, 0, 0);
+                for (let i = 0; i < p.blobsArray.length; i++) {
+                    const blob = p.blobsArray[i];
+                    blob.draw();
+                    blob.update();
                 }
             }
         }
 
-        p.getNextCoordinates = () => {
-            let x, y, overlapping = true;
-            do {
-                x = p.random(p.width / 8, p.width - p.width / 8);
-                y = p.random(p.height / 8, p.height - p.height / 8);
-                // Check for overlapping positions
-                overlapping = p.flowers.some(flower => {
-                    if (flower) {
-                        const d = p.dist(x, y, flower.x, flower.y);
-                        return d < flower.pistilRadius * 2; // You may adjust this threshold
-                    }
-                    return false; // Handle null flower
-                });
-            } while (overlapping);
 
-            return { x, y };
-        };
-
-
-        p.executeCueSet1 = (note) => {
-            const { currentCue } = note;
-            if(currentCue % 10 === 1) {
-                p.clear();
-                p.flowers = Array(20).fill(null);
-            }
-            let coOrds = p.getNextCoordinates();
-            const hue = p.random(p.hueSet.filter(hue => hue !== p.bgHue));
-            p.flowers[(currentCue % 10 - 1)] =
-                new Flower(
-                    p,
-                    coOrds.x,
-                    coOrds.y,
-                    hue
-                );
-            p.draw();
-            setTimeout(
-                function () {
-                    coOrds = p.getNextCoordinates();
-                    p.flowers[(currentCue % 10 - 1) + 10] =
-                        new Flower(
-                            p,
-                            coOrds.x,
-                            coOrds.y,
-                            hue + p.random(-30, 30)
-                        );
-                    p.draw();
-                },
-                433
+        p.executeCueSet1 = () => {
+            const x = p.random(p.width / 2 - p.width / 8, p.width / 2 + p.width / 8);
+            const y = p.random(p.height / 2 - p.height / 8, p.height / 2 + p.height / 8);
+            p.blobsArray.push(
+                new Blob(p, x, y)
             );
-        }
-
-        p.executeCueSet2 = (note) => {
-            const { currentCue } = note;
-            p.bgSaturation = p.bgSaturation + 10;
-            p.bgBrightness = p.bgBrightness + 5;
-            if(currentCue % 6 === 0){
-                p.bgHue = p.random(p.hueSet.filter(hue => hue !== p.bgHue));
-                p.bgSaturation = 30;
-                p.bgBrightness = 50;
-            }
-            p.draw();
         }
 
         p.hasStarted = false;
